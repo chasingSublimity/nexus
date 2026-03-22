@@ -47,17 +47,23 @@ HabitTrackerApp (NSApplicationDelegate)
 protocol EffectRenderer {
     associatedtype GlowModifier: ViewModifier
 
+    /// False when the in-app reduceMotion toggle or NSWorkspace.accessibilityDisplayShouldReduceMotion is true.
+    /// Views must check this before applying any animated effect.
+    var isMotionEnabled: Bool { get }
+
     /// Renders a full-screen overlay effect (scan lines, vignette, noise) into the given rect.
     /// `phase` is a 0–1 normalized time value driven by TimelineView for animation.
+    /// Returns an empty view when isMotionEnabled is false.
     @ViewBuilder func overlay(in rect: CGRect, phase: Double) -> some View
 
     /// Returns a modifier that applies a neon glow to the receiver.
     /// `color` is one of the neon palette colors; `intensity` is 0–1.
+    /// Returns a static border modifier when isMotionEnabled is false.
     func glowModifier(color: Color, intensity: Double) -> GlowModifier
 
     /// Triggers a glitch animation sequence by toggling `isGlitching` true, animating,
     /// then resetting to false after `duration` seconds.
-    /// Callers bind a `@State var isGlitching: Bool` and pass it here.
+    /// No-ops when isMotionEnabled is false.
     func triggerGlitch(duration: Double, isGlitching: Binding<Bool>)
 }
 ```
@@ -94,6 +100,7 @@ UserProfile                    // singleton — one record per app install
 ├── xp: Int
 ├── level: Int
 ├── totalHabitsCompleted: Int  // AchievementEngine is the sole writer; always incremented atomically with the log write
+├── reduceMotion: Bool         // in-app accessibility toggle; flat UI when true
 └── achievements: [Achievement]
 
 Achievement
@@ -111,6 +118,7 @@ Achievement
 - `Habit.isArchived` enables soft deletion. Archived habits are excluded from the NEXUS Habit Roster and menu bar panel, but their `HabitLog` records are preserved so the 365-day heatmap and achievement counts remain accurate.
 - `Habit.notificationTime` stores only hour and minute as `DateComponents`. `NotificationScheduler` schedules a repeating `UNCalendarNotificationTrigger` — the date component is always ignored.
 - `UserProfile.totalHabitsCompleted` is a stored counter for query performance. `AchievementEngine` is its sole writer and increments it atomically in the same SwiftData context save as the log write.
+- `UserProfile.reduceMotion` is the in-app accessibility toggle. The app also checks `NSWorkspace.shared.accessibilityDisplayShouldReduceMotion` at runtime — if either is true, motion effects are disabled. The in-app toggle exists so users can opt out without changing a system-wide preference.
 
 ---
 
@@ -214,6 +222,7 @@ Frameless `NSWindow` with full custom chrome. The three-column layout is always 
 - Palette: deep black/dark navy background, neon green (`#39FF14`), electric blue (`#00F5FF`), hot pink (`#FF006E`) accents
 - Typography: Fira Code throughout, uppercase-heavy, `//` as section separators. Fira Code must be bundled in the app (not assumed to be installed on the user's system)
 - Effects (via `SwiftUIEffectRenderer`, replaceable with Metal): scan line overlay, neon glow (`.shadow` chains), glitch animations on level-up/achievement unlock, `TimelineView`-driven pulsing on active streaks
+- **Reduce Motion mode**: when `reduceMotion` is true (in-app toggle) or `NSWorkspace.shared.accessibilityDisplayShouldReduceMotion` is true, all motion effects are disabled. The UI goes flat — neon colors and typography are preserved, but scan lines, glitch animations, pulsing, and glow shadows are replaced with static solid borders and no animation. `EffectRenderer` exposes a `isMotionEnabled: Bool` property; views read this rather than checking the toggle directly.
 
 ---
 
