@@ -161,6 +161,7 @@ No level cap — the formula extends indefinitely. Leveling up triggers an achie
 - `night_owl` — log a habit after 11pm on 5 separate days
 - `centurion` — 100 total habit completions
 - `perfect_week` — complete all habits every day for 7 consecutive days
+- `comeback_kid` — reach a 2-day streak on any habit that had a gap of 7+ days since its last log
 
 ---
 
