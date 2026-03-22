@@ -29,4 +29,14 @@ final class LevelSystemTests: XCTestCase {
         // At level 1 with 50 XP, need 50 more to reach level 2 threshold of 100
         XCTAssertEqual(LevelSystem.xpToNextLevel(currentXP: 50), 50)
     }
+
+    func test_xpToNextLevel_atExactThreshold() {
+        // At level 2 (xp=100), next threshold is level 3 at 400 → need 300 more
+        XCTAssertEqual(LevelSystem.xpToNextLevel(currentXP: 100), 300)
+    }
+
+    func test_xpToNextLevel_clampsNegativeInput() {
+        // Negative XP treated as 0, so same as xpToNextLevel(0) = 100
+        XCTAssertEqual(LevelSystem.xpToNextLevel(currentXP: -50), 100)
+    }
 }

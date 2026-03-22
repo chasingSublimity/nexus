@@ -11,16 +11,14 @@ enum LevelSystem {
 
     /// Determines the current level for a given total XP.
     static func level(for xp: Int) -> Int {
-        var level = 1
-        while threshold(for: level + 1) <= xp {
-            level += 1
-        }
-        return level
+        guard xp >= 0 else { return 1 }
+        return Int(sqrt(Double(xp) / 100.0)) + 1
     }
 
     /// XP needed to reach the next level from the current total.
     static func xpToNextLevel(currentXP: Int) -> Int {
-        let current = level(for: currentXP)
-        return threshold(for: current + 1) - currentXP
+        let xp = max(0, currentXP)
+        let current = level(for: xp)
+        return threshold(for: current + 1) - xp
     }
 }
