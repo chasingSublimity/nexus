@@ -37,8 +37,32 @@ HabitTrackerApp (NSApplicationDelegate)
 ### Key architectural decisions
 
 - **AppKit shell** owns the app skeleton — `NSStatusItem` for the menu bar, frameless `NSWindow` for NEXUS. AppKit is used for window chrome control; SwiftUI handles all content views via `NSHostingView`.
+- **MenuBarController** presents an `NSPopover` hosting a SwiftUI view. The popover opens on `NSStatusItem` click and dismisses on click-outside.
 - **Metal-ready seam**: all visual effects (scan lines, bloom, glitch, glow) are produced through an `EffectRenderer` protocol. Today's implementation uses SwiftUI `Canvas` + `TimelineView`. `MetalEffectRenderer` can slot in at the injection point without touching app logic.
 - **SwiftData** for local-only persistence. No sync, no network dependency.
+
+### EffectRenderer Protocol
+
+```swift
+protocol EffectRenderer {
+    associatedtype GlowModifier: ViewModifier
+
+    /// Renders a full-screen overlay effect (scan lines, vignette, noise) into the given rect.
+    /// `phase` is a 0–1 normalized time value driven by TimelineView for animation.
+    @ViewBuilder func overlay(in rect: CGRect, phase: Double) -> some View
+
+    /// Returns a modifier that applies a neon glow to the receiver.
+    /// `color` is one of the neon palette colors; `intensity` is 0–1.
+    func glowModifier(color: Color, intensity: Double) -> GlowModifier
+
+    /// Triggers a glitch animation sequence by toggling `isGlitching` true, animating,
+    /// then resetting to false after `duration` seconds.
+    /// Callers bind a `@State var isGlitching: Bool` and pass it here.
+    func triggerGlitch(duration: Double, isGlitching: Binding<Bool>)
+}
+```
+
+The `associatedtype GlowModifier: ViewModifier` pattern preserves type safety. `SwiftUIEffectRenderer` implements these using `.shadow` chains, `Canvas` drawing, and state-driven animations. `MetalEffectRenderer` will implement the same protocol using `MTKView`-backed rendering — the injection site in `RootView` is the only change required.
 
 ---
 
@@ -52,7 +76,8 @@ Habit
 ├── unit: String?              // "miles", "glasses", "minutes"
 ├── targetValue: Double?       // for quantified habits
 ├── difficulty: Difficulty     // .easy | .medium | .hard
-├── notificationTime: Date?
+├── notificationTime: DateComponents?  // hour + minute only; nil = no reminder
+├── isArchived: Bool           // soft delete; archived habits are hidden but logs are preserved
 ├── color: String              // hex, maps to neon palette
 ├── icon: String               // SF Symbol name
 ├── sortOrder: Int
@@ -68,7 +93,7 @@ HabitLog
 UserProfile                    // singleton — one record per app install
 ├── xp: Int
 ├── level: Int
-├── totalHabitsCompleted: Int
+├── totalHabitsCompleted: Int  // AchievementEngine is the sole writer; always incremented atomically with the log write
 └── achievements: [Achievement]
 
 Achievement
@@ -83,6 +108,9 @@ Achievement
 - `HabitLog.date` is normalized to midnight so queries for "did user complete this habit today?" are simple equality checks.
 - `Achievement.key` is a plain string rather than an enum so new achievements can be added without a SwiftData migration.
 - `UserProfile` is a singleton row. XP and level are centralized here, not scattered across habit records.
+- `Habit.isArchived` enables soft deletion. Archived habits are excluded from the NEXUS Habit Roster and menu bar panel, but their `HabitLog` records are preserved so the 365-day heatmap and achievement counts remain accurate.
+- `Habit.notificationTime` stores only hour and minute as `DateComponents`. `NotificationScheduler` schedules a repeating `UNCalendarNotificationTrigger` — the date component is always ignored.
+- `UserProfile.totalHabitsCompleted` is a stored counter for query performance. `AchievementEngine` is its sole writer and increments it atomically in the same SwiftData context save as the log write.
 
 ---
 
@@ -96,7 +124,9 @@ func calculate(for log: HabitLog, streak: Int, siblingsForDay: [HabitLog]) -> In
 
 ```
 base               = difficulty.xp            // easy=10, medium=25, hard=50
-streak_bonus       = base × min(streak × 0.05, 1.0)   // caps at 2× base
+streak_bonus       = base × min(streak × 0.05, 1.0)
+                   // streak multiplier caps at 1.0, so streak_bonus caps at base
+                   // maximum total before ratio = base + base = 2× base
 ratio_multiplier   = log.value / habit.targetValue     // quantified only, capped at 1.2
                    = 1.0 for boolean habits
 perfect_day_bonus  = siblingsForDay.allCompleted ? 25 : 0
@@ -104,9 +134,23 @@ perfect_day_bonus  = siblingsForDay.allCompleted ? 25 : 0
 total = (base + streak_bonus) × ratio_multiplier + perfect_day_bonus
 ```
 
+The streak cap means `(base + streak_bonus)` tops out at `2 × base` (e.g. hard habit = 100 XP max before ratio). The ratio multiplier can push this up to `2 × base × 1.2` for a quantified habit that exceeds its target.
+
 ### Level System
 
-Level thresholds defined in `LevelSystem` as a static lookup. Leveling up triggers an achievement check and a glitch animation in the NEXUS activity feed.
+Level thresholds defined in `LevelSystem` as a static lookup using a quadratic curve (`threshold(n) = 100 × (n-1)²`):
+
+| Level | XP Required (cumulative) |
+|---|---|
+| 1 | 0 |
+| 2 | 100 |
+| 3 | 400 |
+| 4 | 900 |
+| 5 | 1,600 |
+| 10 | 8,100 |
+| 20 | 36,100 |
+
+No level cap — the formula extends indefinitely. Leveling up triggers an achievement check and a glitch animation in the NEXUS activity feed.
 
 ### Achievements
 
@@ -141,7 +185,7 @@ Quick-log interface. Appears as a popover from the `NSStatusItem` tray icon.
 
 ### NEXUS (Main Window)
 
-Frameless `NSWindow` with full custom chrome. Three-column layout — all panels visible simultaneously.
+Frameless `NSWindow` with full custom chrome. The three-column layout is always visible. The nav bar tabs (`[DASHBOARD] [HABITS] [ACHIEVEMENTS]`) switch only the **center panel** content — the left roster and right stats panels are always present.
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -174,7 +218,7 @@ Frameless `NSWindow` with full custom chrome. Three-column layout — all panels
 
 ## Notifications
 
-Per-habit scheduled reminders via `UNUserNotificationCenter`. Each `Habit` stores an optional `notificationTime: Date`. `NotificationScheduler` owns all scheduling logic — it rebuilds the full notification schedule whenever habits are added, removed, or modified.
+Per-habit scheduled reminders via `UNUserNotificationCenter`. Each `Habit` stores an optional `notificationTime: DateComponents` (hour + minute only). `NotificationScheduler` schedules a repeating `UNCalendarNotificationTrigger` per habit — the trigger fires daily at the stored time. It rebuilds the full notification schedule whenever habits are added, removed, modified, or archived.
 
 Permission is requested once at first launch. If denied, notifications silently do not fire — no error surfaces to the user.
 
@@ -183,7 +227,7 @@ Permission is requested once at first launch. If denied, notifications silently 
 ## Error Handling
 
 - **SwiftData init failure**: treated as fatal. Show an alert with an option to reset the local store.
-- **Log write failure**: silent degradation. Surfaced as a glitch animation in the NEXUS activity feed — aesthetic and informative.
+- **Log write failure**: silent degradation. Surfaced as a glitch animation in the NEXUS activity feed if NEXUS is open; if NEXUS is closed, the animation is queued and plays on next open.
 - **Notification permission denied**: silent degradation. Habits function normally without reminders.
 - **XP calculation**: pure functions with no failure modes. All inputs are valid model objects.
 
@@ -194,7 +238,7 @@ Permission is requested once at first launch. If denied, notifications silently 
 | Layer | Approach |
 |---|---|
 | `XPCalculator` | Unit tests — pure function, table-driven cases |
-| `AchievementEngine` | Unit tests — given profile state, assert correct unlocks |
+| `AchievementEngine` | Unit tests — given profile state, assert correct unlocks. Requires a mockable clock interface for time-dependent achievements (e.g. `night_owl`) |
 | `HabitStore` | Integration tests against in-memory SwiftData container |
 | `NotificationScheduler` | Unit tests with mock `UNUserNotificationCenter` |
 | UI | Manual — custom AppKit/SwiftUI aesthetics don't lend themselves to snapshot tests |
