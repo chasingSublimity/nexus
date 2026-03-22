@@ -4,6 +4,7 @@ import Foundation
 enum XPCalculator {
     static func calculate(for log: HabitLog, streak: Int, siblingsCompleted: Bool) -> Int {
         guard let habit = log.habit else { return 0 }
+        let streak = max(0, streak)
 
         let base = Double(habit.difficulty.xp)
         let streakMultiplier = min(Double(streak) * 0.05, 1.0)
