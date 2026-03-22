@@ -10,6 +10,20 @@
 
 ---
 
+## Phases
+
+| Phase | Tasks | Builds |
+|---|---|---|
+| **1 — Foundation** | 1–8 | Data models, store, XP/level/achievement logic, notifications — all tested, no UI |
+| **2 — AppKit Shell + Visual Layer** | 9–11 | App launches, `◈` in menu bar, NEXUS window opens (placeholder content) |
+| **3 — Menu Bar + NEXUS Shell** | 12–14 | Cyberpunk chrome visible, three-column layout, nav tabs switch panels |
+| **4 — NEXUS Content Panels** | 15–19 | All panels populated with real data — roster, heatmap, habit management, stats, achievements |
+| **5 — Wiring + Settings** | 20–22 | Full end-to-end: log → XP → level → achievements, reduce motion toggle, notifications |
+
+Each phase ends with a **human checkpoint** — explicit criteria you verify before handing off to the next sub-agent.
+
+---
+
 ## File Map
 
 Every file that will be created, grouped by responsibility.
@@ -66,6 +80,13 @@ HabitTrackerTests/
 ├── HabitStoreTests.swift
 └── NotificationSchedulerTests.swift
 ```
+
+---
+
+## Phase 1 — Foundation
+> **Goal:** All data models, business logic, and notifications are implemented and tested. No UI exists yet. This phase is entirely pure Swift — no AppKit, no SwiftUI.
+>
+> **Tasks:** 1–8
 
 ---
 
@@ -1144,6 +1165,27 @@ HabitTrackerTests/
 
 ---
 
+## ✅ Phase 1 Checkpoint — Human Review Required
+
+Before proceeding to Phase 2, verify:
+
+- [ ] `xcodebuild test` passes — all unit tests green (`XPCalculator`, `LevelSystem`, `AchievementEngine`, `HabitStore`, `NotificationScheduler`)
+- [ ] `AchievementEngine` unlocks `streak_7`, `comeback_kid`, and `night_owl` correctly in tests
+- [ ] `LevelSystem.level(for: 8100)` returns `10`
+- [ ] `HabitStore` add/log/archive cycle works in the in-memory test container
+- [ ] Fira Code `.ttf` files are in the Xcode project with correct target membership
+
+**If all pass, hand off Phase 2 to a sub-agent.**
+
+---
+
+## Phase 2 — AppKit Shell + Visual Layer
+> **Goal:** The app launches. A `◈` icon appears in the menu bar. Clicking it opens a popover. Clicking `[OPEN NEXUS]` opens a dark frameless window. The `EffectRenderer` protocol and SwiftUI implementation are in place.
+>
+> **Tasks:** 9–11
+
+---
+
 ## Task 9: EffectRenderer Protocol + AnyEffectRenderer
 
 **Files:**
@@ -1466,6 +1508,29 @@ HabitTrackerTests/
 
 ---
 
+## ✅ Phase 2 Checkpoint — Human Review Required
+
+Before proceeding to Phase 3, verify:
+
+- [ ] App builds and runs without errors
+- [ ] `◈` icon appears in the macOS menu bar
+- [ ] Clicking `◈` opens a popover with dark background and `[OPEN NEXUS]` button
+- [ ] Clicking `[OPEN NEXUS]` opens a frameless dark window
+- [ ] The NEXUS window is draggable by its background
+- [ ] Scan line overlay is visible (subtle horizontal lines across the window)
+- [ ] Toggling system Reduce Motion (System Settings → Accessibility) removes the overlay
+
+**If all pass, hand off Phase 3 to a sub-agent.**
+
+---
+
+## Phase 3 — Menu Bar + NEXUS Shell
+> **Goal:** The cyberpunk chrome is visible end-to-end. The menu bar panel has correct styling. The NEXUS window shows the three-column layout with functioning nav tabs. Content panels are stubs — the focus is structure and styling, not data.
+>
+> **Tasks:** 12–14
+
+---
+
 ## Task 12: HabitRowView (Shared Component)
 
 **Files:**
@@ -1782,6 +1847,29 @@ This reusable row appears in both the menu bar panel and the NEXUS roster.
   git add HabitTracker/Views/
   git commit -m "feat: add NEXUS shell with three-column layout and nav tabs"
   ```
+
+---
+
+## ✅ Phase 3 Checkpoint — Human Review Required
+
+Before proceeding to Phase 4, verify:
+
+- [ ] Menu bar panel shows `[NEURAL//HABITS]` header and `[OPEN NEXUS]` footer in Fira Code
+- [ ] NEXUS window has `◈ HABIT//OS` title bar with `[DASHBOARD]`, `[HABITS]`, `[ACHIEVEMENTS]`, `[SETTINGS]` tabs
+- [ ] Three columns are visible: left roster, center panel, right stats
+- [ ] Clicking nav tabs switches the center panel content
+- [ ] `✕` button in the title bar quits the app
+- [ ] Window is resizable with a minimum size (doesn't collapse below ~700×480)
+- [ ] Background is deep black — no default macOS window chrome visible
+
+**If all pass, hand off Phase 4 to a sub-agent.**
+
+---
+
+## Phase 4 — NEXUS Content Panels
+> **Goal:** All panels are populated with real data. You can see the habit roster with streak bars, the 365-day heatmap, the achievement grid, and the XP/level stats. Habits can be added and archived via the [HABITS] tab.
+>
+> **Tasks:** 15–19
 
 ---
 
@@ -2360,6 +2448,28 @@ This reusable row appears in both the menu bar panel and the NEXUS roster.
 
 ---
 
+## ✅ Phase 4 Checkpoint — Human Review Required
+
+Before proceeding to Phase 5, verify:
+
+- [ ] Add a habit via `[HABITS]` tab — it appears in the left roster immediately
+- [ ] The 365-day heatmap renders in the `[DASHBOARD]` tab (all cells grey for a new install)
+- [ ] Archiving a habit removes it from the roster and menu bar panel
+- [ ] Right column shows `LVL 1`, `XP: 0`, and the full achievement list (all locked)
+- [ ] `[ACHIEVEMENTS]` tab shows achievement cards with locked/unlocked states
+- [ ] Fira Code is rendering throughout — no system fallback font visible
+
+**If all pass, hand off Phase 5 to a sub-agent.**
+
+---
+
+## Phase 5 — Wiring + Settings
+> **Goal:** The app is fully functional end-to-end. Logging a habit awards XP, updates the level bar, and unlocks achievements. The reduce motion toggle works. Scheduled notifications fire at the right times.
+>
+> **Tasks:** 20–22
+
+---
+
 ## Task 20: Wire Gamification (Log → XP → Level → Achievements)
 
 **Files:**
@@ -2639,6 +2749,17 @@ This task connects the log action to the full XP → level-up → achievement pi
   git add HabitTracker/HabitTrackerApp.swift
   git commit -m "feat: wire notification permission request and schedule rebuild"
   ```
+
+---
+
+## ✅ Phase 5 Checkpoint — Final Human Review
+
+- [ ] Log a boolean habit — XP increases in the right column
+- [ ] Log a quantified habit with a value above target — XP reflects the ratio bonus
+- [ ] Log the same habit for 7 consecutive days (set dates manually via the store for testing) — `STREAK 7` achievement unlocks
+- [ ] Toggle Reduce Motion in `[SETTINGS]` — scan lines and glow disappear, neon colors remain
+- [ ] Set a notification time on a habit — macOS delivers the notification at the scheduled time
+- [ ] The `◈` menu bar icon survives a restart — the app re-appears in the tray automatically
 
 ---
 
