@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 
+@MainActor
 final class HabitStore {
     let container: ModelContainer
     private var context: ModelContext { container.mainContext }
@@ -52,7 +53,9 @@ final class HabitStore {
     func logHabit(_ habit: Habit, date: Date, completed: Bool = true, value: Double? = nil) throws -> HabitLog {
         let normalized = Calendar.current.startOfDay(for: date)
         // Remove existing log for this day if present
-        let existing = habit.logs.first { $0.date == normalized }
+        let existing = habit.logs.first {
+            Calendar.current.isDate($0.date, inSameDayAs: normalized)
+        }
         if let existing { context.delete(existing) }
 
         let log = HabitLog(habit: habit, date: normalized, completed: completed, value: value)
@@ -64,10 +67,10 @@ final class HabitStore {
     func fetchLogs(for habit: Habit, in range: ClosedRange<Date>) throws -> [HabitLog] {
         let start = Calendar.current.startOfDay(for: range.lowerBound)
         let end = Calendar.current.startOfDay(for: range.upperBound)
-        let habitID = habit.persistentModelID
+        let habitID = habit.id
         let descriptor = FetchDescriptor<HabitLog>(
             predicate: #Predicate { log in
-                log.habit?.persistentModelID == habitID && log.date >= start && log.date <= end
+                log.habit?.id == habitID && log.date >= start && log.date <= end
             },
             sortBy: [SortDescriptor(\.date)]
         )
