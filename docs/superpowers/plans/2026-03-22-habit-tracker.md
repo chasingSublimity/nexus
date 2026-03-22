@@ -924,7 +924,8 @@ HabitTrackerTests/
           check("comeback_kid") { isComebackKid(logs: allLogs, today: today) }
           check("night_owl")    { nightOwlCount(logs: allLogs) >= 5 }
           check("centurion")    { profile.totalHabitsCompleted >= 100 }
-          check("perfect_week") { isPerfectWeek(allHabitLogs: allLogs, today: today) }
+          // NOTE: perfect_week is NOT evaluated here — it requires all habits' combined logs.
+          // GamificationCoordinator.processLog() evaluates it separately with the full log set.
 
           // level achievements use current profile state
           check("level_10") { profile.level >= 10 }
@@ -975,15 +976,16 @@ HabitTrackerTests/
           }.count
       }
 
-      /// perfect_week: all provided logs show completed = true for each of the last 7 days.
-      /// NOTE: AchievementEngine.evaluate receives only a single habit's logs.
-      /// perfect_week is evaluated by GamificationCoordinator which passes all habits' combined logs.
-      private func isPerfectWeek(allHabitLogs: [HabitLog], today: Date) -> Bool {
-          let calendar = Calendar.current
-          let last7Days = (0..<7).map { calendar.date(byAdding: .day, value: -$0, to: calendar.startOfDay(for: today))! }
-          let completedDays = Set(allHabitLogs.filter { $0.completed }.map { calendar.startOfDay(for: $0.date) })
-          return last7Days.allSatisfy { completedDays.contains($0) }
-      }
+  }
+
+  // MARK: - Perfect Week helper (used by GamificationCoordinator, not AchievementEngine)
+  /// Returns true if all logs show completion for every one of the last 7 days.
+  /// Must be called with the combined logs of ALL active habits, not a single habit's logs.
+  func isPerfectWeek(allHabitLogs: [HabitLog], today: Date) -> Bool {
+      let calendar = Calendar.current
+      let last7Days = (0..<7).map { calendar.date(byAdding: .day, value: -$0, to: calendar.startOfDay(for: today))! }
+      let completedDays = Set(allHabitLogs.filter { $0.completed }.map { calendar.startOfDay(for: $0.date) })
+      return last7Days.allSatisfy { completedDays.contains($0) }
   }
   ```
 
@@ -2412,13 +2414,23 @@ This task connects the log action to the full XP → level-up → achievement pi
           profile.level = LevelSystem.level(for: profile.xp)
           profile.totalHabitsCompleted += 1
 
-          // Achievements
-          let newAchievementKeys = engine.evaluate(
+          // Achievements from single-habit rules
+          var newAchievementKeys = engine.evaluate(
               habit: log.habit!,
               allLogs: allLogsForHabit,
               profile: profile,
               today: today
           )
+
+          // perfect_week requires all habits' combined logs — evaluate separately
+          let alreadyUnlocked = Set(profile.achievements.map(\.key))
+          if !alreadyUnlocked.contains("perfect_week") {
+              let allLogs = activeHabits.flatMap(\.logs)
+              if isPerfectWeek(allHabitLogs: allLogs, today: today) {
+                  newAchievementKeys.append("perfect_week")
+              }
+          }
+
           for key in newAchievementKeys {
               let achievement = Achievement(key: key)
               profile.achievements.append(achievement)
