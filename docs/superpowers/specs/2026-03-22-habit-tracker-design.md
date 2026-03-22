@@ -212,7 +212,7 @@ Frameless `NSWindow` with full custom chrome. The three-column layout is always 
 ### Visual Language
 
 - Palette: deep black/dark navy background, neon green (`#39FF14`), electric blue (`#00F5FF`), hot pink (`#FF006E`) accents
-- Typography: SF Mono throughout, uppercase-heavy, `//` as section separators
+- Typography: Fira Code throughout, uppercase-heavy, `//` as section separators. Fira Code must be bundled in the app (not assumed to be installed on the user's system)
 - Effects (via `SwiftUIEffectRenderer`, replaceable with Metal): scan line overlay, neon glow (`.shadow` chains), glitch animations on level-up/achievement unlock, `TimelineView`-driven pulsing on active streaks
 
 ---
