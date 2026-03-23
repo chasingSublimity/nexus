@@ -4,9 +4,8 @@ import SwiftUI
 struct NexusView: View {
     let renderer: AnyEffectRenderer
     let onClose: () -> Void
+    @EnvironmentObject private var coordinator: GamificationCoordinator
     @State private var activeTab: NexusTab = .dashboard
-    @State private var isGlitching = false
-    @State private var glitchOffset: CGFloat = 0
     @State private var hoveringQuit = false
 
     var body: some View {
@@ -54,10 +53,7 @@ struct NexusView: View {
         .overlay(alignment: .leading)  { CursorZone(cursor: .resizeLeftRight).frame(width: 6) }
         .overlay(alignment: .trailing) { CursorZone(cursor: .resizeLeftRight).frame(width: 6) }
         .overlay(alignment: .bottom)   { CursorZone(cursor: .resizeUpDown).frame(height: 6) }
-        .offset(x: isGlitching ? glitchOffset : 0)
-        .onChange(of: isGlitching) { _, glitching in
-            if glitching { glitchOffset = CGFloat.random(in: -3...3) }
-        }
+        .offset(x: coordinator.isGlitching ? coordinator.glitchOffset : 0)
     }
 
     private var titleBar: some View {

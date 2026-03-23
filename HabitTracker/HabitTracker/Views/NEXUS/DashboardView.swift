@@ -2,11 +2,8 @@ import SwiftUI
 import SwiftData
 
 struct DashboardView: View {
+    @EnvironmentObject private var coordinator: GamificationCoordinator
     @Query private var habits: [Habit]
-    @State private var activityFeed: [String] = [
-        "> SYSTEM INITIALIZED",
-        "> AWAITING INPUT...",
-    ]
 
     var body: some View {
         ScrollView {
@@ -56,7 +53,7 @@ struct DashboardView: View {
 
     private var activityFeedView: some View {
         VStack(alignment: .leading, spacing: 2) {
-            ForEach(activityFeed.suffix(20).reversed(), id: \.self) { line in
+            ForEach(coordinator.activityLog.suffix(20).reversed(), id: \.self) { line in
                 Text(line)
                     .font(.firaCode(10))
                     .foregroundColor(.neonGreen.opacity(0.8))

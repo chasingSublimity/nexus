@@ -31,7 +31,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 (try? store.fetchOrCreateProfile())?.reduceMotion ?? false
             }
         })
-        effectRenderer = AnyEffectRenderer(renderer)  // will be wired in Phase 3
+        effectRenderer = AnyEffectRenderer(renderer)
+        coordinator.wire(renderer: effectRenderer!)
 
         menuBarController = MenuBarController(coordinator: coordinator)
         mainWindowController = MainWindowController()

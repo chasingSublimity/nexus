@@ -1,20 +1,29 @@
 import Combine
 import Foundation
 import SwiftData
+import SwiftUI
 import UserNotifications
 
 @MainActor
 final class GamificationCoordinator: ObservableObject {
     @Published private(set) var todayXP: Int = 0
+    @Published private(set) var activityLog: [String] = ["> SYSTEM INITIALIZED", "> AWAITING INPUT..."]
+    @Published var isGlitching = false
+    @Published var glitchOffset: CGFloat = 0
 
     private let store: HabitStore
     private let engine = AchievementEngine()
     private let scheduler = NotificationScheduler(center: UNUserNotificationCenter.current())
+    private var renderer: AnyEffectRenderer?
 
     var container: ModelContainer { store.container }
 
     init(store: HabitStore) {
         self.store = store
+    }
+
+    func wire(renderer: AnyEffectRenderer) {
+        self.renderer = renderer
     }
 
     func requestNotificationPermission() async {
@@ -32,7 +41,12 @@ final class GamificationCoordinator: ObservableObject {
     /// Passing `completed: false` uncompletes the habit without awarding XP.
     func logAndProcess(habit: Habit, date: Date, completed: Bool, value: Double? = nil) {
         guard let log = try? store.logHabit(habit, date: date, completed: completed, value: value) else { return }
-        guard completed else { return }
+
+        guard completed else {
+            appendLog("> REVERTED // \(habit.name.uppercased())")
+            return
+        }
+
         guard let profile = try? store.fetchOrCreateProfile() else { return }
 
         let allHabitLogs = habit.logs
@@ -68,6 +82,30 @@ final class GamificationCoordinator: ObservableObject {
         }
 
         try? store.container.mainContext.save()
+
+        let streakSuffix = streak > 1 ? " [STREAK: \(streak)]" : ""
+        appendLog("> +\(xpGained) XP // \(habit.name.uppercased())\(streakSuffix)")
+        for key in newKeys {
+            appendLog("> ACHIEVEMENT UNLOCKED: \(key.uppercased().replacingOccurrences(of: "_", with: " "))")
+        }
+        triggerGlitch()
+    }
+
+    // MARK: - Private
+
+    private func appendLog(_ line: String) {
+        activityLog.append(line)
+        if activityLog.count > 100 { activityLog.removeFirst() }
+    }
+
+    private func triggerGlitch() {
+        guard renderer?.isMotionEnabled == true, !isGlitching else { return }
+        glitchOffset = CGFloat.random(in: -3...3)
+        withAnimation(.easeIn(duration: 0.05)) { isGlitching = true }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(0.15))
+            withAnimation(.easeOut(duration: 0.1)) { self.isGlitching = false }
+        }
     }
 
     private func currentStreak(in logs: [HabitLog], asOf today: Date) -> Int {
