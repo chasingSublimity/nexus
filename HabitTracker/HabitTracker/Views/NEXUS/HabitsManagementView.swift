@@ -93,9 +93,7 @@ struct HabitsManagementView: View {
     }
 
     private func cycleDifficulty() {
-        let all = Difficulty.allCases
-        let idx = all.firstIndex(of: newHabitDifficulty) ?? 0
-        newHabitDifficulty = all[(idx + 1) % all.count]
+        newHabitDifficulty = newHabitDifficulty.next()
     }
 
     private func addHabit() {

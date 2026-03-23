@@ -50,6 +50,12 @@ enum Difficulty: String, Codable, CaseIterable {
     }
 
     var label: String { rawValue.uppercased() }
+
+    func next() -> Difficulty {
+        let all = Difficulty.allCases
+        let idx = all.firstIndex(of: self) ?? 0
+        return all[(idx + 1) % all.count]
+    }
 }
 
 enum NexusTab: String, CaseIterable {
