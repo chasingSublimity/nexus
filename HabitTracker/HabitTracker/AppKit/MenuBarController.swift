@@ -30,15 +30,10 @@ final class MenuBarController {
         popover.contentSize = NSSize(width: 280, height: 320)
         popover.behavior = .transient
         popover.contentViewController = NSHostingController(
-            rootView: Text("[OPEN NEXUS]")
-                .font(.firaCode(12))
-                .foregroundColor(.neonGreen)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.voidBlack)
-                .onTapGesture { [weak self] in
-                    popover.performClose(nil)
-                    self?.onOpenNexus?()
-                }
+            rootView: MenuBarPanelView(onOpenNexus: { [weak self] in
+                popover.performClose(nil)
+                self?.onOpenNexus?()
+            })
         )
         self.popover = popover
 
