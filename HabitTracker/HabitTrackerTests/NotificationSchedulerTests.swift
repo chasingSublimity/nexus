@@ -19,7 +19,7 @@ final class NotificationSchedulerTests: XCTestCase {
         let habit3 = Habit(name: "Read", difficulty: .medium)
         // no notification time set
 
-        try await scheduler.rebuild(for: [habit1, habit2, habit3])
+        await scheduler.rebuild(for: [habit1, habit2, habit3])
 
         XCTAssertEqual(center.pendingRequests.count, 2)
     }
@@ -32,11 +32,12 @@ final class NotificationSchedulerTests: XCTestCase {
         habit.notificationHour = 8
         habit.notificationMinute = 0
 
-        try await scheduler.rebuild(for: [habit])
-        try await scheduler.rebuild(for: [habit])
+        await scheduler.rebuild(for: [habit])
+        await scheduler.rebuild(for: [habit])
 
         // Should still only have 1, not 2 (old ones removed before re-adding)
         XCTAssertEqual(center.pendingRequests.count, 1)
+        XCTAssertTrue(center.removeAllCalled)
     }
 }
 

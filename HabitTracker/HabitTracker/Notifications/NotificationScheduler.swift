@@ -17,21 +17,19 @@ final class NotificationScheduler {
         self.center = center
     }
 
-    func requestPermission() async {
-        _ = try? await center.requestAuthorization(options: [.alert, .sound])
+    /// Requests notification authorization. Returns whether permission was granted.
+    @discardableResult
+    func requestPermission() async -> Bool {
+        (try? await center.requestAuthorization(options: [.alert, .sound])) ?? false
     }
 
     /// Removes all existing habit notifications and schedules fresh ones.
-    func rebuild(for habits: [Habit]) async throws {
+    /// Scheduling individual habits is best-effort — a single failure does not abort remaining habits.
+    func rebuild(for habits: [Habit]) async {
         center.removeAllPendingNotificationRequests()
 
         for habit in habits where !habit.isArchived {
-            guard let hour = habit.notificationHour,
-                  let minute = habit.notificationMinute else { continue }
-
-            var dateComponents = DateComponents()
-            dateComponents.hour = hour
-            dateComponents.minute = minute
+            guard let dateComponents = habit.notificationTime else { continue }
 
             let content = UNMutableNotificationContent()
             content.title = "NEURAL//HABITS"
@@ -44,7 +42,7 @@ final class NotificationScheduler {
                 content: content,
                 trigger: trigger
             )
-            try await center.add(request)
+            try? await center.add(request)
         }
     }
 }
