@@ -17,7 +17,15 @@ final class MenuBarController {
         statusItem?.button?.font = NSFont(name: "FiraCode-Regular", size: 14)
         statusItem?.button?.action = #selector(togglePopover)
         statusItem?.button?.target = self
+        statusItem?.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
+
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "q"))
+        statusItem?.menu = nil  // Don't set menu directly; we show it on right-click only
+        self.statusMenu = menu
     }
+
+    private var statusMenu: NSMenu?
 
     private func makePopover() -> NSPopover {
         let p = NSPopover()
@@ -37,7 +45,12 @@ final class MenuBarController {
 
     @objc private func togglePopover() {
         guard let button = statusItem?.button else { return }
-        
+
+        if let event = NSApp.currentEvent, event.type == .rightMouseUp {
+            statusMenu?.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 5), in: button)
+            return
+        }
+
         if popover.isShown {
             popover.performClose(nil)
         } else {
@@ -45,5 +58,9 @@ final class MenuBarController {
             popover.contentSize = popover.contentViewController?.view.fittingSize ?? NSSize(width: 280, height: 320)
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         }
+    }
+
+    @objc private func quitApp() {
+        NSApp.terminate(nil)
     }
 }
