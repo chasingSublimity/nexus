@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 import SwiftData
+import UserNotifications
 
 @MainActor
 final class GamificationCoordinator: ObservableObject {
@@ -8,11 +9,23 @@ final class GamificationCoordinator: ObservableObject {
 
     private let store: HabitStore
     private let engine = AchievementEngine()
+    private let scheduler = NotificationScheduler(center: UNUserNotificationCenter.current())
 
     var container: ModelContainer { store.container }
 
     init(store: HabitStore) {
         self.store = store
+    }
+
+    func requestNotificationPermission() async {
+        await scheduler.requestPermission()
+    }
+
+    func rebuildNotifications() {
+        Task {
+            let habits = (try? store.fetchActiveHabits()) ?? []
+            await scheduler.rebuild(for: habits)
+        }
     }
 
     /// Writes a habit log and runs the XP + achievement pipeline.

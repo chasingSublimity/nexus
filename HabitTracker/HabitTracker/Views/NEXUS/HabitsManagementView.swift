@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct HabitsManagementView: View {
+    @EnvironmentObject private var coordinator: GamificationCoordinator
     @Environment(\.modelContext) private var modelContext
     @Query(filter: #Predicate<Habit> { !$0.isArchived },
            sort: \Habit.sortOrder) private var habits: [Habit]
@@ -112,10 +113,12 @@ struct HabitsManagementView: View {
         try? modelContext.save()
         newHabitName = ""
         newHabitUnit = ""
+        coordinator.rebuildNotifications()
     }
 
     private func archiveHabit(_ habit: Habit) {
         habit.isArchived = true
         try? modelContext.save()
+        coordinator.rebuildNotifications()
     }
 }

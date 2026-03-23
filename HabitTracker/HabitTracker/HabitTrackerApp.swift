@@ -47,6 +47,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             )
         }
 
+        Task { await coordinator.requestNotificationPermission() }
+
         menuBarController?.onOpenNexus = { [weak self] in
             NSApp.setActivationPolicy(.regular)
             self?.mainWindowController?.showWindow(nil)
