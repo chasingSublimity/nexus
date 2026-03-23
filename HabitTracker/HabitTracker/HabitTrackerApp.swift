@@ -1,4 +1,5 @@
 import AppKit
+import SwiftData
 import SwiftUI
 
 @main
@@ -28,13 +29,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menuBarController = MenuBarController()
         mainWindowController = MainWindowController()
 
-        mainWindowController?.window?.contentView = NSHostingView(
-            rootView: Text("NEXUS LOADING...")
-                .font(.firaCode(16))
-                .foregroundColor(.neonGreen)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.voidBlack)
-        )
+        if let renderer = effectRenderer {
+            mainWindowController?.window?.contentView = NSHostingView(
+                rootView: RootView(renderer: renderer)
+                    .modelContainer(store.container)
+            )
+        }
 
         menuBarController?.store = store
         menuBarController?.onOpenNexus = { [weak self] in
