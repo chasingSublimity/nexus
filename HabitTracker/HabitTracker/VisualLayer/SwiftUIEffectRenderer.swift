@@ -23,10 +23,10 @@ final class SwiftUIEffectRenderer: EffectRenderer {
                 let lineSpacing: CGFloat = 4
                 var y: CGFloat = 0
                 while y < size.height {
-                    let alpha = 0.03 + 0.02 * sin(y / 20 + phase * .pi * 2)
+                    let alpha = 0.04 + 0.03 * sin(y / 20 + phase * .pi * 2)
                     context.fill(
                         Path(CGRect(x: 0, y: y, width: size.width, height: 1)),
-                        with: .color(.black.opacity(alpha))
+                        with: .color(.white.opacity(alpha))
                     )
                     y += lineSpacing
                 }
