@@ -29,18 +29,13 @@ struct HabitsManagementView: View {
                 }
                 .buttonStyle(.plain)
 
-                // Three options — dropdown menu
-                Menu {
-                    ForEach(Difficulty.allCases, id: \.self) { d in
-                        Button(d.label) { newHabitDifficulty = d }
-                    }
-                } label: {
-                    Text("[\(newHabitDifficulty.label) ▾]")
+                // Three options — click to cycle
+                Button(action: cycleDifficulty) {
+                    Text("[\(newHabitDifficulty.label)]")
                         .font(.firaCode(11))
                         .foregroundColor(.neonGreen)
                 }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
+                .buttonStyle(.plain)
 
                 let nameIsEmpty = newHabitName.trimmingCharacters(in: .whitespaces).isEmpty
                 Button(action: addHabit) {
@@ -91,6 +86,12 @@ struct HabitsManagementView: View {
             .scrollContentBackground(.hidden)
             .background(Color.darkNavy)
         }
+    }
+
+    private func cycleDifficulty() {
+        let all = Difficulty.allCases
+        let idx = all.firstIndex(of: newHabitDifficulty) ?? 0
+        newHabitDifficulty = all[(idx + 1) % all.count]
     }
 
     private func addHabit() {
