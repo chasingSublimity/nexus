@@ -9,38 +9,52 @@ struct HabitsManagementView: View {
     @State private var newHabitType: HabitType = .boolean
     @State private var newHabitDifficulty: Difficulty = .medium
     @State private var newHabitUnit = ""
+    @State private var hoveringAdd = false
+    @State private var hoveringArchiveID: UUID? = nil
 
     var body: some View {
         VStack(spacing: 0) {
-            // Add habit bar
-            HStack {
+            HStack(spacing: 8) {
                 TextField("NEW HABIT NAME", text: $newHabitName)
                     .font(.firaCode(11))
                     .foregroundColor(.neonGreen)
                     .textFieldStyle(.plain)
+                    .onSubmit { addHabit() }
 
-                Picker("", selection: $newHabitType) {
-                    Text("BOOL").tag(HabitType.boolean)
-                    Text("QTY").tag(HabitType.quantified)
-                }
-                .labelsHidden()
-                .frame(width: 70)
-
-                Picker("", selection: $newHabitDifficulty) {
-                    ForEach(Difficulty.allCases, id: \.self) { d in
-                        Text(d.label).tag(d)
-                    }
-                }
-                .labelsHidden()
-                .frame(width: 70)
-
-                Button(action: addHabit) {
-                    Text("[+ ADD]")
-                        .font(.firaCode(11, weight: .bold))
+                // Two options — click to toggle
+                Button(action: { newHabitType = newHabitType == .boolean ? .quantified : .boolean }) {
+                    Text("[\(newHabitType == .boolean ? "TASK" : "GOAL")]")
+                        .font(.firaCode(11))
                         .foregroundColor(.neonGreen)
                 }
                 .buttonStyle(.plain)
-                .disabled(newHabitName.trimmingCharacters(in: .whitespaces).isEmpty)
+
+                // Three options — dropdown menu
+                Menu {
+                    ForEach(Difficulty.allCases, id: \.self) { d in
+                        Button(d.label) { newHabitDifficulty = d }
+                    }
+                } label: {
+                    Text("[\(newHabitDifficulty.label) ▾]")
+                        .font(.firaCode(11))
+                        .foregroundColor(.neonGreen)
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+
+                let nameIsEmpty = newHabitName.trimmingCharacters(in: .whitespaces).isEmpty
+                Button(action: addHabit) {
+                    Text("[+ ADD]")
+                        .font(.firaCode(11, weight: .bold))
+                        .foregroundColor(
+                            nameIsEmpty       ? .neonGreen.opacity(0.2) :
+                            hoveringAdd       ? .neonGreen               :
+                                               .neonGreen.opacity(0.55)
+                        )
+                }
+                .buttonStyle(.plain)
+                .disabled(nameIsEmpty)
+                .onHover { hoveringAdd = $0 }
             }
             .padding(12)
             .background(Color.voidBlack)
@@ -49,22 +63,27 @@ struct HabitsManagementView: View {
 
             List {
                 ForEach(habits) { habit in
-                    HStack {
+                    HStack(spacing: 8) {
                         Image(systemName: habit.icon)
                             .foregroundColor(Color(hex: habit.color))
                         Text(habit.name.uppercased())
                             .font(.firaCode(12))
                             .foregroundColor(.white)
-                        Spacer()
                         Text(habit.difficulty.label)
                             .font(.firaCode(9))
                             .foregroundColor(.neonBlue.opacity(0.6))
+                        Spacer()
                         Button(action: { archiveHabit(habit) }) {
                             Text("[ARCHIVE]")
                                 .font(.firaCode(9))
-                                .foregroundColor(.neonPink.opacity(0.5))
+                                .foregroundColor(
+                                    hoveringArchiveID == habit.id
+                                        ? .neonPink
+                                        : .neonPink.opacity(0.3)
+                                )
                         }
                         .buttonStyle(.plain)
+                        .onHover { hovering in hoveringArchiveID = hovering ? habit.id : nil }
                     }
                     .listRowBackground(Color.darkNavy)
                 }
