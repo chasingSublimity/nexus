@@ -5,6 +5,7 @@ struct NexusView: View {
     let renderer: AnyEffectRenderer
     @State private var activeTab: NexusTab = .dashboard
     @State private var isGlitching = false
+    @State private var glitchOffset: CGFloat = 0
 
     var body: some View {
         ZStack {
@@ -48,7 +49,10 @@ struct NexusView: View {
                 .allowsHitTesting(false)
             }
         }
-        .offset(x: isGlitching ? CGFloat.random(in: -3...3) : 0)
+        .offset(x: isGlitching ? glitchOffset : 0)
+        .onChange(of: isGlitching) { _, glitching in
+            if glitching { glitchOffset = CGFloat.random(in: -3...3) }
+        }
     }
 
     private var titleBar: some View {
@@ -76,7 +80,7 @@ struct NexusView: View {
 
             Spacer()
 
-            Button(action: { Task { @MainActor in NSApp.terminate(nil) } }) {
+            Button(action: { NSApp.terminate(nil) }) {
                 Text("✕")
                     .font(.firaCode(12))
                     .foregroundColor(.neonPink.opacity(0.6))

@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 import SwiftData
 
+@MainActor
 final class MenuBarController {
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?

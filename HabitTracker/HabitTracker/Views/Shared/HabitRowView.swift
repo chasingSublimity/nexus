@@ -51,5 +51,6 @@ struct HabitRowView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
+        .onChange(of: habit.id) { quantifiedInput = "" }
     }
 }
