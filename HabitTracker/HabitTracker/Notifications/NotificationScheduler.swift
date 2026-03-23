@@ -13,7 +13,7 @@ extension UNUserNotificationCenter: UserNotificationCenter {}
 final class NotificationScheduler {
     private let center: any UserNotificationCenter
 
-    init(center: any UserNotificationCenter = UNUserNotificationCenter.current()) {
+    init(center: any UserNotificationCenter) {
         self.center = center
     }
 

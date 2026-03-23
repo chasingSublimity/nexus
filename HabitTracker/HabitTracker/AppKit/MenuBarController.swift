@@ -5,7 +5,7 @@ import SwiftData
 @MainActor
 final class MenuBarController {
     private var statusItem: NSStatusItem?
-    private var popover: NSPopover?
+    private lazy var popover: NSPopover = makePopover()
 
     var onOpenNexus: (() -> Void)?
     var store: HabitStore?
@@ -18,27 +18,28 @@ final class MenuBarController {
         statusItem?.button?.target = self
     }
 
-    @objc private func togglePopover() {
-        if let popover, popover.isShown {
-            popover.performClose(nil)
-        } else {
-            showPopover()
-        }
-    }
-
-    private func showPopover() {
-        let popover = NSPopover()
-        popover.contentSize = NSSize(width: 280, height: 320)
-        popover.behavior = .transient
-        popover.contentViewController = NSHostingController(
+    private func makePopover() -> NSPopover {
+        let p = NSPopover()
+        p.contentSize = NSSize(width: 280, height: 320)
+        p.behavior = .transient
+        p.animates = false
+        p.contentViewController = NSHostingController(
             rootView: MenuBarPanelView(onOpenNexus: { [weak self] in
-                popover.performClose(nil)
+                self?.popover.performClose(nil)
                 self?.onOpenNexus?()
             })
         )
-        self.popover = popover
+        return p
+    }
 
-        if let button = statusItem?.button {
+    @objc private func togglePopover() {
+        guard let button = statusItem?.button else { return }
+        
+        if popover.isShown {
+            popover.performClose(nil)
+        } else {
+            // Ensure SwiftUI content size is current
+            popover.contentSize = popover.contentViewController?.view.fittingSize ?? NSSize(width: 280, height: 320)
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         }
     }

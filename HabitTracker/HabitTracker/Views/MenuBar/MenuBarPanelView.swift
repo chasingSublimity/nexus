@@ -43,6 +43,7 @@ struct MenuBarPanelView: View {
                         .foregroundColor(.neonGreen)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("open-nexus-button")
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)

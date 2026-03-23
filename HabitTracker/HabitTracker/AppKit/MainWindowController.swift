@@ -1,9 +1,26 @@
 import AppKit
 import SwiftUI
 
+private final class NexusWindow: NSWindow {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+
+    // Cmd+W
+    override func performClose(_ sender: Any?) {
+        orderOut(nil)
+        NSApp.setActivationPolicy(.accessory)
+    }
+
+    // Escape key
+    override func cancelOperation(_ sender: Any?) {
+        orderOut(nil)
+        NSApp.setActivationPolicy(.accessory)
+    }
+}
+
 final class MainWindowController: NSWindowController {
     convenience init() {
-        let window = NSWindow(
+        let window = NexusWindow(
             contentRect: NSRect(x: 0, y: 0, width: 900, height: 600),
             styleMask: [.borderless, .resizable],
             backing: .buffered,

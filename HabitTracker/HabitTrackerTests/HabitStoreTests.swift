@@ -15,7 +15,7 @@ final class HabitStoreTests: XCTestCase {
     }
 
     func test_addHabit_persistsAndReturns() throws {
-        let habit = try store.addHabit(name: "Meditate", type: .boolean, difficulty: .medium)
+        _ = try store.addHabit(name: "Meditate", type: .boolean, difficulty: .medium)
         let habits = try store.fetchActiveHabits()
         XCTAssertEqual(habits.count, 1)
         XCTAssertEqual(habits[0].name, "Meditate")

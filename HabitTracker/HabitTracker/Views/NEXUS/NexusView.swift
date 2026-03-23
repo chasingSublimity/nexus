@@ -3,9 +3,11 @@ import SwiftUI
 
 struct NexusView: View {
     let renderer: AnyEffectRenderer
+    let onClose: () -> Void
     @State private var activeTab: NexusTab = .dashboard
     @State private var isGlitching = false
     @State private var glitchOffset: CGFloat = 0
+    @State private var hoveringQuit = false
 
     var body: some View {
         ZStack {
@@ -49,6 +51,9 @@ struct NexusView: View {
                 .allowsHitTesting(false)
             }
         }
+        .overlay(alignment: .leading)  { CursorZone(cursor: .resizeLeftRight).frame(width: 6) }
+        .overlay(alignment: .trailing) { CursorZone(cursor: .resizeLeftRight).frame(width: 6) }
+        .overlay(alignment: .bottom)   { CursorZone(cursor: .resizeUpDown).frame(height: 6) }
         .offset(x: isGlitching ? glitchOffset : 0)
         .onChange(of: isGlitching) { _, glitching in
             if glitching { glitchOffset = CGFloat.random(in: -3...3) }
@@ -80,13 +85,17 @@ struct NexusView: View {
 
             Spacer()
 
-            Button(action: { NSApp.terminate(nil) }) {
+            Button(action: onClose) {
                 Text("✕")
                     .font(.firaCode(12))
-                    .foregroundColor(.neonPink.opacity(0.6))
+                    .foregroundColor(hoveringQuit ? .neonPink : .neonPink.opacity(0.35))
+                    .scaleEffect(hoveringQuit ? 1.15 : 1.0)
+                    .animation(.easeOut(duration: 0.1), value: hoveringQuit)
             }
             .buttonStyle(.plain)
+            .onHover { hoveringQuit = $0 }
             .padding(.trailing, 16)
+            .accessibilityIdentifier("nexus-close-button")
         }
         .frame(height: 40)
         .background(Color.darkNavy)

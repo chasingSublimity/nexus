@@ -6,7 +6,7 @@ final class NotificationSchedulerTests: XCTestCase {
 
     func test_scheduleHabits_requestsCorrectNotificationCount() async throws {
         let center = MockNotificationCenter()
-        let scheduler = NotificationScheduler(center: center)
+        let scheduler = await NotificationScheduler(center: center)
 
         let habit1 = Habit(name: "Meditate", difficulty: .easy)
         habit1.notificationHour = 8
@@ -26,7 +26,7 @@ final class NotificationSchedulerTests: XCTestCase {
 
     func test_rebuild_removesOldNotificationsFirst() async throws {
         let center = MockNotificationCenter()
-        let scheduler = NotificationScheduler(center: center)
+        let scheduler = await NotificationScheduler(center: center)
 
         let habit = Habit(name: "Meditate", difficulty: .easy)
         habit.notificationHour = 8

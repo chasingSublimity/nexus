@@ -65,7 +65,7 @@ final class SwiftUIEffectRenderer: EffectRenderer {
     // MARK: - Glitch
 
     func triggerGlitch(duration: Double, isGlitching: Binding<Bool>) {
-        guard isMotionEnabled else { return }
+        guard isMotionEnabled, !isGlitching.wrappedValue else { return }
         withAnimation(.easeIn(duration: 0.05)) {
             isGlitching.wrappedValue = true
         }
