@@ -26,7 +26,6 @@ final class MenuBarController {
     }
 
     private func showPopover() {
-        guard let store else { return }
         let popover = NSPopover()
         popover.contentSize = NSSize(width: 280, height: 320)
         popover.behavior = .transient
@@ -40,7 +39,6 @@ final class MenuBarController {
                     popover.performClose(nil)
                     self?.onOpenNexus?()
                 }
-                .modelContainer(store.container)
         )
         self.popover = popover
 

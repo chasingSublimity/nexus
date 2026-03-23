@@ -14,6 +14,7 @@ struct HabitTrackerEntryPoint {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBarController: MenuBarController?
     private var mainWindowController: MainWindowController?
+    private var effectRenderer: AnyEffectRenderer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let store = try! HabitStore()
@@ -22,8 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 (try? store.fetchOrCreateProfile())?.reduceMotion ?? false
             }
         })
-        let anyRenderer = AnyEffectRenderer(renderer)
-        _ = anyRenderer  // will be wired in Phase 3
+        effectRenderer = AnyEffectRenderer(renderer)  // will be wired in Phase 3
 
         menuBarController = MenuBarController()
         mainWindowController = MainWindowController()
