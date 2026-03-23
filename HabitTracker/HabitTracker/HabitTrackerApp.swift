@@ -25,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
 
         let store = try! HabitStore()
+        let coordinator = GamificationCoordinator(store: store)
         let renderer = SwiftUIEffectRenderer(userReduceMotion: {
             MainActor.assumeIsolated {
                 (try? store.fetchOrCreateProfile())?.reduceMotion ?? false
@@ -32,7 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         })
         effectRenderer = AnyEffectRenderer(renderer)  // will be wired in Phase 3
 
-        menuBarController = MenuBarController()
+        menuBarController = MenuBarController(coordinator: coordinator)
         mainWindowController = MainWindowController()
 
         if let renderer = effectRenderer {
@@ -42,10 +43,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     NSApp.setActivationPolicy(.accessory)
                 })
                 .modelContainer(store.container)
+                .environmentObject(coordinator)
             )
         }
 
-        menuBarController?.store = store
         menuBarController?.onOpenNexus = { [weak self] in
             NSApp.setActivationPolicy(.regular)
             self?.mainWindowController?.showWindow(nil)
@@ -68,6 +69,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     NSApp.setActivationPolicy(.regular)
                     self?.mainWindowController?.showWindow(nil)
                 })
+                .environmentObject(coordinator)
                 .modelContainer(store.container)
             )
             popoverWindow.center()

@@ -8,9 +8,10 @@ final class MenuBarController {
     private lazy var popover: NSPopover = makePopover()
 
     var onOpenNexus: (() -> Void)?
-    var store: HabitStore?
+    private let coordinator: GamificationCoordinator
 
-    init() {
+    init(coordinator: GamificationCoordinator) {
+        self.coordinator = coordinator
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem?.button?.title = "◈"
         statusItem?.button?.font = NSFont(name: "FiraCode-Regular", size: 14)
@@ -28,6 +29,8 @@ final class MenuBarController {
                 self?.popover.performClose(nil)
                 self?.onOpenNexus?()
             })
+            .environmentObject(coordinator)
+            .modelContainer(coordinator.container)
         )
         return p
     }

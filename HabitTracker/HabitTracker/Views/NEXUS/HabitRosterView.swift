@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct HabitRosterView: View {
+    @EnvironmentObject private var coordinator: GamificationCoordinator
     @Query(filter: #Predicate<Habit> { !$0.isArchived },
            sort: \Habit.sortOrder) private var habits: [Habit]
 
@@ -18,33 +19,37 @@ struct HabitRosterView: View {
                         .padding()
                 } else {
                     ForEach(habits) { habit in
-                        habitRow(habit)
+                        let todayLog = habit.logs.first { Calendar.current.isDateInToday($0.date) }
+                        VStack(alignment: .leading, spacing: 0) {
+                            HabitRowView(
+                                habit: habit,
+                                log: todayLog,
+                                onToggle: {
+                                    coordinator.logAndProcess(
+                                        habit: habit,
+                                        date: Date(),
+                                        completed: !(todayLog?.completed == true)
+                                    )
+                                },
+                                onValueSet: { value in
+                                    coordinator.logAndProcess(
+                                        habit: habit,
+                                        date: Date(),
+                                        completed: true,
+                                        value: value
+                                    )
+                                }
+                            )
+                            streakBar(for: habit)
+                                .padding(.horizontal, 12)
+                                .padding(.bottom, 6)
+                        }
                         Divider().background(Color.white.opacity(0.05))
                     }
                 }
             }
         }
         .background(Color.darkNavy)
-    }
-
-    private func habitRow(_ habit: Habit) -> some View {
-        let todayLog = habit.logs.first {
-            Calendar.current.isDateInToday($0.date)
-        }
-        return VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(Color(hex: habit.color).opacity(todayLog?.completed == true ? 1 : 0.2))
-                    .frame(width: 6, height: 6)
-                Text("▸ \(habit.name.uppercased())")
-                    .font(.firaCode(11, weight: .medium))
-                    .foregroundColor(todayLog?.completed == true ? Color(hex: habit.color) : .white.opacity(0.8))
-                    .lineLimit(1)
-            }
-            streakBar(for: habit)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
     }
 
     private func streakBar(for habit: Habit) -> some View {
