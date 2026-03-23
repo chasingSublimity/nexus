@@ -10,6 +10,8 @@ struct HabitsManagementView: View {
     @State private var newHabitDifficulty: Difficulty = .medium
     @State private var newHabitUnit = ""
     @State private var hoveringAdd = false
+    @State private var hoveringType = false
+    @State private var hoveringDifficulty = false
     @State private var hoveringArchiveID: UUID? = nil
 
     var body: some View {
@@ -25,17 +27,19 @@ struct HabitsManagementView: View {
                 Button(action: { newHabitType = newHabitType == .boolean ? .quantified : .boolean }) {
                     Text("[\(newHabitType == .boolean ? "TASK" : "GOAL")]")
                         .font(.firaCode(11))
-                        .foregroundColor(.neonGreen)
+                        .foregroundColor(.neonGreen.opacity(hoveringType ? 0.5 : 1.0))
                 }
                 .buttonStyle(.plain)
+                .onHover { hoveringType = $0 }
 
                 // Three options — click to cycle
                 Button(action: cycleDifficulty) {
                     Text("[\(newHabitDifficulty.label)]")
                         .font(.firaCode(11))
-                        .foregroundColor(.neonGreen)
+                        .foregroundColor(.neonGreen.opacity(hoveringDifficulty ? 0.5 : 1.0))
                 }
                 .buttonStyle(.plain)
+                .onHover { hoveringDifficulty = $0 }
 
                 let nameIsEmpty = newHabitName.trimmingCharacters(in: .whitespaces).isEmpty
                 Button(action: addHabit) {
